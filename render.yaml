@@ -3,5 +3,8 @@ services:
     name: reia-scraper
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: |
+      apt-get update && \
+      apt-get install -y chromium-browser && \
+      npm install
     startCommand: node server.js

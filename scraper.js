@@ -1,4 +1,5 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromePath = "/usr/bin/chromium-browser"; // Common on Render
 
 async function scrapePrice(location) {
   const slugMap = require("./location_slugs"); // you already have this
@@ -9,7 +10,7 @@ async function scrapePrice(location) {
   const url = `https://housing.com/in/buy/${city}/${slug}`;
 
   const browser = await puppeteer.launch({
-    headless: "new",
+    executablePath: chromePath,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 

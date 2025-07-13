@@ -1,8 +1,8 @@
 const puppeteer = require("puppeteer-core");
-const chromePath = "/usr/bin/chromium"; // Common on Render
+const chromePath = "/usr/bin/chromium";
 
 async function scrapePrice(location) {
-  const slugMap = require("./location_slugs"); // you already have this
+  const slugMap = require("./location_slugs");
   const slug = slugMap[location];
   if (!slug) return { error: `Unsupported location: ${location}` };
 
@@ -15,11 +15,12 @@ async function scrapePrice(location) {
   });
 
   const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
 
   try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+
     await page.waitForSelector("div[class*='T_cardV1Style']", {
-      timeout: 12000,
+      timeout: 8000,
     });
 
     const cards = await page.$$(`div[class*='T_cardV1Style']`);
@@ -57,7 +58,6 @@ async function scrapePrice(location) {
         return null;
       });
 
-      console.log("Matched price text:", priceText);
       if (!priceText) continue;
 
       const match = priceText.match(/₹([\d.]+)\s*K\/sq\.?ft/i);
@@ -102,7 +102,6 @@ async function scrapePrice(location) {
   }
 }
 
-// If run directly from CLI:
 if (require.main === module) {
   const location = process.argv[2];
   if (!location) {

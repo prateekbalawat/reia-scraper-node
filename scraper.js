@@ -1,5 +1,5 @@
 const puppeteer = require("puppeteer-core");
-const chromePath = "/usr/bin/chromium-browser"; // Common on Render
+const chromePath = "/usr/bin/chromium"; // Common on Render
 
 async function scrapePrice(location) {
   const slugMap = require("./location_slugs"); // you already have this

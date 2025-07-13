@@ -1,8 +1,8 @@
 const puppeteer = require("puppeteer-core");
-const chromePath = "/usr/bin/chromium";
+const chromePath = "/usr/bin/chromium"; // Compatible with Render
 
 async function scrapePrice(location) {
-  const slugMap = require("./location_slugs");
+  const slugMap = require("./location_slugs"); // mapping file
   const slug = slugMap[location];
   if (!slug) return { error: `Unsupported location: ${location}` };
 
@@ -17,23 +17,28 @@ async function scrapePrice(location) {
   const page = await browser.newPage();
 
   try {
-    let navigated = false;
-    try {
-      await page.goto(url, { waitUntil: "load", timeout: 20000 });
-      navigated = true;
-    } catch (err) {
-      console.warn("First navigation failed, retrying...");
-      await page.waitForTimeout(2000);
-      await page.goto(url, { waitUntil: "load", timeout: 20000 });
-      navigated = true;
+    console.log("Navigating to:", url);
+
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138 Safari/537.36"
+    );
+    await page.setViewport({ width: 1280, height: 800 });
+
+    const response = await page.goto(url, {
+      waitUntil: ["domcontentloaded", "load"],
+      timeout: 15000,
+    });
+
+    if (!response || !response.ok()) {
+      throw new Error(
+        `Failed to load page: ${response?.status() || "Unknown status"}`
+      );
     }
 
-    if (!navigated) throw new Error("Page navigation failed");
-
-    console.log(`Navigated to ${url}`);
+    console.log("Page loaded successfully");
 
     await page.waitForSelector("div[class*='T_cardV1Style']", {
-      timeout: 8000,
+      timeout: 12000,
     });
 
     const cards = await page.$$(`div[class*='T_cardV1Style']`);
@@ -111,11 +116,13 @@ async function scrapePrice(location) {
       rental_yield_percent: 3,
     };
   } catch (err) {
+    console.error("Error occurred during scraping:", err.message);
     await browser.close();
     return { error: `Scraping failed: ${err.message}` };
   }
 }
 
+// If run directly from CLI
 if (require.main === module) {
   const location = process.argv[2];
   if (!location) {

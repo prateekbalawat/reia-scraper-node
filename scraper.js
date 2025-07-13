@@ -1,13 +1,15 @@
 const puppeteer = require("puppeteer-core");
-const chromePath = "/usr/bin/chromium"; // Compatible with Render
+const chromePath = "/usr/bin/chromium"; // Render deployment path
 
 async function scrapePrice(location) {
-  const slugMap = require("./location_slugs"); // mapping file
+  const slugMap = require("./location_slugs");
   const slug = slugMap[location];
   if (!slug) return { error: `Unsupported location: ${location}` };
 
   const city = location.split(" ").slice(-1)[0].toLowerCase();
   const url = `https://housing.com/in/buy/${city}/${slug}`;
+
+  console.log("Navigating to:", url);
 
   const browser = await puppeteer.launch({
     executablePath: chromePath,
@@ -15,17 +17,14 @@ async function scrapePrice(location) {
   });
 
   const page = await browser.newPage();
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138 Safari/537.36"
+  );
+  await page.setViewport({ width: 1024, height: 768 });
 
   try {
-    console.log("Navigating to:", url);
-
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138 Safari/537.36"
-    );
-    await page.setViewport({ width: 1280, height: 800 });
-
     const response = await page.goto(url, {
-      waitUntil: ["domcontentloaded", "load"],
+      waitUntil: "domcontentloaded", // faster navigation strategy
       timeout: 15000,
     });
 
@@ -35,10 +34,11 @@ async function scrapePrice(location) {
       );
     }
 
-    console.log("Page loaded successfully");
+    console.log("Page loaded, waiting for JS content...");
 
+    await page.waitForTimeout(3000); // wait for JS to hydrate
     await page.waitForSelector("div[class*='T_cardV1Style']", {
-      timeout: 12000,
+      timeout: 10000,
     });
 
     const cards = await page.$$(`div[class*='T_cardV1Style']`);
@@ -116,13 +116,12 @@ async function scrapePrice(location) {
       rental_yield_percent: 3,
     };
   } catch (err) {
-    console.error("Error occurred during scraping:", err.message);
     await browser.close();
     return { error: `Scraping failed: ${err.message}` };
   }
 }
 
-// If run directly from CLI
+// If run directly
 if (require.main === module) {
   const location = process.argv[2];
   if (!location) {

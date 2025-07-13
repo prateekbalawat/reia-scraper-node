@@ -17,7 +17,20 @@ async function scrapePrice(location) {
   const page = await browser.newPage();
 
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    let navigated = false;
+    try {
+      await page.goto(url, { waitUntil: "load", timeout: 20000 });
+      navigated = true;
+    } catch (err) {
+      console.warn("First navigation failed, retrying...");
+      await page.waitForTimeout(2000);
+      await page.goto(url, { waitUntil: "load", timeout: 20000 });
+      navigated = true;
+    }
+
+    if (!navigated) throw new Error("Page navigation failed");
+
+    console.log(`Navigated to ${url}`);
 
     await page.waitForSelector("div[class*='T_cardV1Style']", {
       timeout: 8000,
@@ -58,6 +71,7 @@ async function scrapePrice(location) {
         return null;
       });
 
+      console.log("Matched price text:", priceText);
       if (!priceText) continue;
 
       const match = priceText.match(/₹([\d.]+)\s*K\/sq\.?ft/i);
